@@ -1,0 +1,52 @@
+import cv2
+import numpy as np
+import argparse
+import os
+
+def apply_clahe_color(img, clip_limit=2.0, tile_grid_size=(8, 8)):
+    """Applies CLAHE to the luminance channel in LAB color space."""
+    lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+    l, a, b = cv2.split(lab)
+
+    # Apply CLAHE to the L-channel
+    clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_grid_size)
+    cl = clahe.apply(l)
+
+    # Merge and convert back to BGR
+    enhanced_lab = cv2.merge((cl, a, b))
+    enhanced_img = cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
+    return enhanced_img
+
+def main():
+    parser = argparse.ArgumentParser(description="Apply CLAHE (Contrast Limited Adaptive Histogram Equalization)")
+    parser.add_argument("image_path", help="Path to the input image")
+    args = parser.parse_args()
+
+    if not os.path.exists(args.image_path):
+        print(f"Error: File '{args.image_path}' not found.")
+        return
+
+    img = cv2.imread(args.image_path)
+    if img is None:
+        print("Error: Failed to load image.")
+        return
+
+    enhanced_img = apply_clahe_color(img)
+
+    # Create comparison image
+    comparison = np.hstack((img, enhanced_img))
+
+    # Save results
+    base_name = os.path.splitext(os.path.basename(args.image_path))[0]
+    output_dir = "output"
+    os.makedirs(output_dir, exist_ok=True)
+    cv2.imwrite(f"{output_dir}/{base_name}_clahe.jpg", enhanced_img)
+    cv2.imwrite(f"{output_dir}/{base_name}_clahe_comparison.jpg", comparison)
+
+    # Show result
+    cv2.imshow("Original vs CLAHE Enhanced", comparison)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    main()
